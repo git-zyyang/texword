@@ -89,10 +89,29 @@ def style_normal(doc, cfg: StyleConfig):
         pass
 
 
+def _set_cell_border(cell, edge, sz="4", val="single", color="000000"):
+    """设置单元格某条边框。"""
+    tcPr = cell._element.get_or_add_tcPr()
+    borders = tcPr.find(qn("w:tcBorders"))
+    if borders is None:
+        borders = OxmlElement("w:tcBorders")
+        tcPr.append(borders)
+    # 移除已有的同名边框
+    for existing in borders.findall(qn(f"w:{edge}")):
+        borders.remove(existing)
+    el = OxmlElement(f"w:{edge}")
+    el.set(qn("w:val"), val)
+    el.set(qn("w:sz"), sz)
+    el.set(qn("w:space"), "0")
+    el.set(qn("w:color"), color)
+    borders.append(el)
+
+
 def style_tables(doc, cfg: StyleConfig):
     for table in doc.tables:
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
-        for row in table.rows:
+        rows = table.rows
+        for i, row in enumerate(rows):
             for cell in row.cells:
                 for para in cell.paragraphs:
                     para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -101,24 +120,43 @@ def style_tables(doc, cfg: StyleConfig):
                         run.font.size = Pt(cfg.font_size_table)
                         run.font.element.rPr.rFonts.set(
                             qn("w:eastAsia"), cfg.font_cjk)
+                        # 表头行加粗
+                        if i == 0:
+                            run.font.bold = True
                     pf = para.paragraph_format
                     pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
                     pf.space_before = Pt(1)
                     pf.space_after = Pt(1)
                     pf.first_line_indent = Cm(0)
 
-        # 表格边框
+        # 三线表边框（学术 booktabs 风格）
         tbl = table._tbl
         tblPr = tbl.tblPr if tbl.tblPr is not None else OxmlElement("w:tblPr")
+        # 移除已有的 tblBorders
+        for existing in tblPr.findall(qn("w:tblBorders")):
+            tblPr.remove(existing)
         borders = OxmlElement("w:tblBorders")
-        for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        # 顶线（粗）
+        for edge, sz, val in [
+            ("top", "12", "single"),      # 1.5pt 粗顶线
+            ("bottom", "12", "single"),    # 1.5pt 粗底线
+            ("left", "0", "none"),
+            ("right", "0", "none"),
+            ("insideH", "0", "none"),
+            ("insideV", "0", "none"),
+        ]:
             el = OxmlElement(f"w:{edge}")
-            el.set(qn("w:val"), "single")
-            el.set(qn("w:sz"), "4")
+            el.set(qn("w:val"), val)
+            el.set(qn("w:sz"), sz)
             el.set(qn("w:space"), "0")
             el.set(qn("w:color"), "000000")
             borders.append(el)
         tblPr.append(borders)
+
+        # 表头行底部加中等粗线（分隔表头和数据）
+        if rows:
+            for cell in rows[0].cells:
+                _set_cell_border(cell, "bottom", sz="6", val="single")
 
 
 # ── 辅助函数 ──
