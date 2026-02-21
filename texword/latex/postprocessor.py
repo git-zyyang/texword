@@ -362,6 +362,66 @@ def fix_body_paragraphs(doc, cfg: StyleConfig):
             _set_widow_orphan(para)
 
 
+# ── 公式编号 ──
+
+MATH_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+
+
+def number_display_equations(doc, cfg: StyleConfig):
+    """为显示公式（oMathPara）添加右对齐编号 (1), (2), ...
+
+    使用 Word 标准方式：右对齐制表位 + 编号文本。
+    """
+    page_width_emu = int(Cm(cfg.page_width).emu)
+    margin_emu = int(Cm(cfg.margin_left).emu + Cm(cfg.margin_right).emu)
+    right_pos = page_width_emu - margin_emu  # 文本区域右边界
+
+    eq_num = 0
+    for para in doc.paragraphs:
+        omath_paras = para._element.findall(
+            f".//{{{MATH_NS}}}oMathPara")
+        if not omath_paras:
+            continue
+
+        eq_num += 1
+
+        # 添加右对齐制表位
+        pPr = para._element.get_or_add_pPr()
+        tabs = pPr.find(qn("w:tabs"))
+        if tabs is None:
+            tabs = OxmlElement("w:tabs")
+            pPr.append(tabs)
+        tab = OxmlElement("w:tab")
+        tab.set(qn("w:val"), "right")
+        tab.set(qn("w:pos"), str(right_pos // 635))  # EMU → twips
+        tab.set(qn("w:leader"), "none")
+        tabs.append(tab)
+
+        # 添加 tab + 编号 run
+        run_el = OxmlElement("w:r")
+        rPr = OxmlElement("w:rPr")
+        rFonts = OxmlElement("w:rFonts")
+        rFonts.set(qn("w:ascii"), cfg.font_body)
+        rFonts.set(qn("w:hAnsi"), cfg.font_body)
+        rPr.append(rFonts)
+        sz = OxmlElement("w:sz")
+        sz.set(qn("w:val"), str(cfg.font_size_body * 2))  # half-points
+        rPr.append(sz)
+        run_el.append(rPr)
+
+        tab_char = OxmlElement("w:tab")
+        run_el.append(tab_char)
+
+        t = OxmlElement("w:t")
+        t.set(qn("xml:space"), "preserve")
+        t.text = f"({eq_num})"
+        run_el.append(t)
+
+        para._element.append(run_el)
+
+    return eq_num
+
+
 # ── 页眉页脚 ──
 
 def add_header_footer(doc, title_short: str = ""):
@@ -425,6 +485,11 @@ def postprocess(docx_path: str, output_path: str, cfg: StyleConfig,
 
     print("  美化表格...")
     style_tables(doc, cfg)
+
+    print("  添加公式编号...")
+    n_eq = number_display_equations(doc, cfg)
+    if n_eq:
+        print(f"    编号 {n_eq} 个显示公式")
 
     if title_short:
         print("  添加页眉...")
