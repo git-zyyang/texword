@@ -30,7 +30,7 @@ High-quality academic paper converter: **LaTeX/PDF → editable Word (OMML equat
 
 **1. 公式原生可编辑（OMML，非图片）**
 
-pandoc 虽然也能输出 OMML，但直接使用 pandoc 转换学术论文会遇到大量兼容性问题（`threeparttable`、`fancyhdr`、`titlesec` 等包报错）。TexWord 的预处理层解决了这些问题，确保 105+ 个公式全部正确转为可编辑 OMML。
+pandoc 虽然也能输出 OMML，但直接使用 pandoc 转换学术论文会遇到大量兼容性问题（`threeparttable`、`fancyhdr`、`titlesec` 等包报错）。TexWord 的预处理层自动解决这些兼容性问题，确保所有公式正确转为可编辑 OMML。
 
 **2. 学术论文专用后处理**
 
@@ -40,7 +40,7 @@ TexWord 理解学术论文结构（Title → Abstract → Sections → Reference
 - 正文：首行缩进、12pt、双倍行距
 - 参考文献：悬挂缩进（APA 格式）、11pt
 - 图表标题：居中、10pt
-- 表格：居中、单线边框、10pt
+- 表格：居中、学术三线表（booktabs 风格）、10pt
 
 **3. 三阶段管线架构**
 
@@ -61,15 +61,15 @@ LaTeX → [预处理] → [pandoc 转换] → [python-docx 后处理] → Word
 
 ## 功能特性 / Features
 
-- **105 个公式 → OMML 原生可编辑**（在 Word 中双击即可编辑）
-- **12 个表格**完整转换，居中 + 边框 + 10pt 字号
-- **6 张 PDF 图片**自动转 PNG（300 DPI）
+- **公式 → OMML 原生可编辑**（在 Word 中双击即可编辑，非图片）
+- **表格**完整转换，学术三线表（booktabs 风格）+ 表头加粗
+- **PDF 图片**自动转 PNG（300 DPI）嵌入
 - **完整格式控制**：Times New Roman、12pt、双倍行距、1 英寸边距
 - **学术结构识别**：标题、摘要、各级标题、参考文献悬挂缩进
 - **页眉**：运行标题 + 页码
 - **寡行孤行控制**（widow/orphan control）
 - **图表标题**居中格式化
-- **自动清理** pandoc 转换残留（如 `thebibliography{99}` 产生的 "99" 文本）
+- **自动清理** pandoc 转换残留
 
 ---
 
@@ -127,7 +127,7 @@ texword/
 
 - [x] LaTeX → Word 完整管线
 - [x] 公式 OMML 转换
-- [x] 学术格式后处理（6 项增强）
+- [x] 学术格式后处理（三线表、表头加粗、寡行孤行控制等）
 - [x] PDF 路线框架 + OCR 引擎抽象
 - [ ] PDF → Word 完整管线（OCR 识别 + 公式重建）
 - [ ] 中文论文支持（宋体/黑体自动切换）
