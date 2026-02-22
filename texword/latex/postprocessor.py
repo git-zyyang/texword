@@ -330,21 +330,21 @@ def fix_body_paragraphs(doc, cfg: StyleConfig):
             _set_widow_orphan(para)
             continue
 
-        # References
+        # References (APA style: hanging indent, double spacing, preserve italic)
         if in_references and style_name == "Body Text":
             for run in para.runs:
                 run.font.name = cfg.font_body
                 run.font.size = Pt(cfg.font_size_ref)
-            set_paragraph_spacing(para, 1.5, 0, 3)
+                # 保留 pandoc 转换的斜体（期刊名、书名等）
+            set_paragraph_spacing(para, cfg.line_spacing, 0, 0)
             para.paragraph_format.first_line_indent = Cm(-1.27)
             para.paragraph_format.left_indent = Cm(1.27)
             continue
 
-        # Normal paragraphs
+        # Normal paragraphs — force correct font/size
         for run in para.runs:
-            if not run.font.name or run.font.name == "Calibri":
-                run.font.name = cfg.font_body
-            if not run.font.size:
+            run.font.name = cfg.font_body
+            if not run.font.size or run.font.size != Pt(cfg.font_size_body):
                 run.font.size = Pt(cfg.font_size_body)
             try:
                 run.font.element.rPr.rFonts.set(
@@ -353,9 +353,8 @@ def fix_body_paragraphs(doc, cfg: StyleConfig):
                 pass
 
         pf = para.paragraph_format
-        if pf.line_spacing is None:
-            pf.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-            pf.line_spacing = cfg.line_spacing
+        pf.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+        pf.line_spacing = cfg.line_spacing
 
         # 所有正文段落添加寡行孤行控制
         if text:
@@ -425,18 +424,29 @@ def number_display_equations(doc, cfg: StyleConfig):
 # ── 页眉页脚 ──
 
 def add_header_footer(doc, title_short: str = ""):
+    """去掉页眉，页码居中放在页脚。"""
     for section in doc.sections:
+        # ── 清空页眉 ──
         header = section.header
-        if not header.paragraphs:
-            header.add_paragraph()
-        hp = header.paragraphs[0]
-        hp.text = title_short.upper() if title_short else ""
-        hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        for run in hp.runs:
-            run.font.size = Pt(10)
-            run.font.italic = True
+        header.is_linked_to_previous = False
+        for para in header.paragraphs:
+            para.text = ""
+            for run in list(para.runs):
+                run._r.getparent().remove(run._r)
 
-        run = hp.add_run("\t")
+        # ── 页脚：居中页码 ──
+        footer = section.footer
+        footer.is_linked_to_previous = False
+        if not footer.paragraphs:
+            footer.add_paragraph()
+        fp = footer.paragraphs[0]
+        fp.text = ""
+        fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = fp.add_run()
+        run.font.size = Pt(10)
+        run.font.name = "Times New Roman"
+
         fld_char_begin = OxmlElement("w:fldChar")
         fld_char_begin.set(qn("w:fldCharType"), "begin")
         run._r.append(fld_char_begin)
@@ -445,6 +455,10 @@ def add_header_footer(doc, title_short: str = ""):
         instr.set(qn("xml:space"), "preserve")
         instr.text = " PAGE "
         run._r.append(instr)
+
+        fld_char_sep = OxmlElement("w:fldChar")
+        fld_char_sep.set(qn("w:fldCharType"), "separate")
+        run._r.append(fld_char_sep)
 
         fld_char_end = OxmlElement("w:fldChar")
         fld_char_end.set(qn("w:fldCharType"), "end")
@@ -491,9 +505,8 @@ def postprocess(docx_path: str, output_path: str, cfg: StyleConfig,
     if n_eq:
         print(f"    编号 {n_eq} 个显示公式")
 
-    if title_short:
-        print("  添加页眉...")
-        add_header_footer(doc, title_short)
+    print("  设置页脚页码...")
+    add_header_footer(doc, title_short)
 
     doc.save(output_path)
     import os

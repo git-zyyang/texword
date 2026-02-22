@@ -69,7 +69,7 @@ class TestPreprocessor:
 class TestCLI:
     def test_version(self):
         from texword import __version__
-        assert __version__ == "0.1.0"
+        assert __version__ == "0.2.0"
 
     def test_pdf_extractor_file_not_found(self):
         from texword.pdf.extractor import PDFExtractor

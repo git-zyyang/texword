@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "texword"
-version = "0.1.0"
-description = "High-quality academic paper converter: LaTeX/PDF → editable Word"
+version = "0.2.0"
+description = "Academic document converter: LaTeX/Markdown/PDF → Word/PDF"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
     {name = "Yang Zhengyuan"},
 ]
-keywords = ["latex", "word", "docx", "academic", "converter", "pandoc"]
+keywords = ["latex", "word", "docx", "pdf", "markdown", "academic", "converter", "pandoc"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -34,3 +34,6 @@ texword = "texword.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["texword*"]
+
+[tool.setuptools.package-data]
+"texword.markdown.styles" = ["*.css"]
