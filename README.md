@@ -136,6 +136,12 @@ texword/
 
 ---
 
+## 支持作者
+
+如果 TexWord 帮你省了时间，欢迎请作者喝杯咖啡 :coffee:
+
+<img src="assets/donate_alipay.jpg" width="200" alt="支付宝赞赏码">
+
 ## License
 
 MIT
